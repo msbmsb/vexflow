@@ -47,7 +47,12 @@ Vex.Flow.Annotation.prototype.draw = function() {
   var start = this.note.getModifierStartXY(Vex.Flow.Modifier.Position.LEFT,
       this.index);
   var x = start.x - (this.getWidth() / 2) + 2;
-  var y = this.note.getStave().getYForTopText(this.text_line);
+  var y;
+  if (this.position == Vex.Flow.Modifier.Position.BELOW) {
+    var y = this.note.getStave().getYForBottomText(this.text_line);
+  } else {
+    var y = this.note.getStave().getYForTopText(this.text_line);
+  }
 
   this.context.save();
   this.context.setFont(this.font.family, this.font.size, this.font.weight);

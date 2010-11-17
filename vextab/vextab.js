@@ -83,6 +83,7 @@ Vex.Flow.VexTab.prototype.init = function() {
     current_line: 0,
     current_stave: -1,
     current_duration: "8",
+    current_text_annotation: null,
     has_notation: false,
     beam_start: null
   };
@@ -305,11 +306,15 @@ Vex.Flow.VexTab.prototype.getNextRegExp = function(re) {
 }
 
 Vex.Flow.VexTab.prototype.getNextToken = function() {
-  return this.getNextRegExp(/^(\d+|[\)\(-tbhpsvV\.\/\|\:])(.*)/);
+  return this.getNextRegExp(/^(\d+|[\)\(-tbhpsvV\"\.\/\|\:])(.*)/);
 }
 
 Vex.Flow.VexTab.prototype.getNextDurationToken = function() {
   return this.getNextRegExp(/^([0-9a-z]+|:)(.*)/);
+}
+
+Vex.Flow.VexTab.prototype.getNextTextToken = function() {
+  return this.getNextRegExp(/^([^\s\t]+)(.*)/);
 }
 
 /**
@@ -406,6 +411,10 @@ Vex.Flow.VexTab.prototype.parseOpenChord = function() {
   // Add a position for this chord.
   this.parse_state.positions.push([]);
   this.parse_state.durations.push(this.state.current_duration);
+  if (this.state.current_text_annotation) {
+    this.parse_state.annotations.push(this.state.current_text_annotation);
+    this.state.current_text_annotation = null;
+  }
   this.parse_state.position_index++;
 
   // Reset the chord-index.
@@ -436,6 +445,35 @@ Vex.Flow.VexTab.prototype.parseTapAnnotation = function() {
   }
 }
 
+/**
+ * Parse "\"" - Text annotations.
+ *
+ * @private
+ */
+Vex.Flow.VexTab.prototype.parseTextAnnotation = function() {
+  // Create an annotation and assosiate it with the note in the
+  // next position.
+  var pos = this.parse_state.position_index + 1;
+
+  // The next token must be a string
+  this.getNextTextToken();
+
+  // set this text annotation and mark it to be set below the stave
+  this.state.current_text_annotation = {
+      position: pos,
+      text: this.parse_state.value,
+      below: true};
+
+  if (this.parse_state.done) return;
+
+  // The next token must be a fret or other annotation.
+  this.getNextToken();
+  switch (this.parse_state.value) {
+    case "(": this.parseOpenChord(); break;
+    case "t": this.parseTapAnnotation(); break;
+    default: this.parseFret();
+  }
+}
 
 /**
  * Parse one note in a chord. The note must have a fret and string, and
@@ -449,6 +487,12 @@ Vex.Flow.VexTab.prototype.parseChordFret = function() {
     this.parseFretDuration();
     this.parse_state.durations[this.parse_state.durations.length - 1] =
       this.state.current_duration;
+    if (this.parse_state.done) return;
+    this.getNextToken();
+  }
+
+  if (this.parse_state.value == "\"") {
+    this.parseTextAnnotation();
     if (this.parse_state.done) return;
     this.getNextToken();
   }
@@ -586,6 +630,12 @@ Vex.Flow.VexTab.prototype.parseFret = function() {
     this.getNextToken();
   }
 
+  if (this.parse_state.value == "\"") {
+    this.parseTextAnnotation();
+    if (this.parse_state.done) return;
+    this.getNextToken();
+  }
+
   // Fret number must be valid.
   var str = this.parse_state.value;
   if (isNaN(parseInt(str)))
@@ -594,6 +644,10 @@ Vex.Flow.VexTab.prototype.parseFret = function() {
   // Create a new position for this fret/string pair.
   this.parse_state.positions.push([{ fret: str }]);
   this.parse_state.durations.push(this.state.current_duration);
+  if (this.state.current_text_annotation) {
+    this.parse_state.annotations.push(this.state.current_text_annotation);
+    this.state.current_text_annotation = null;
+  }
   this.parse_state.position_index++;
 
   // Extract and parse next token.
@@ -859,9 +913,12 @@ Vex.Flow.VexTab.prototype.genElements = function() {
   // Add annotations
   var annotations = this.parse_state.annotations;
   for (var i = 0; i < annotations.length; ++i) {
-    var annotation = annotations[i];
-    tabnotes[annotation.position].note.addModifier(
-        new Vex.Flow.Annotation(annotation.text));
+    var annotation = new Vex.Flow.Annotation(annotations[i].text);
+    if (annotations[i].below) {
+      annotation.position = Vex.Flow.Modifier.Position.BELOW;
+    }
+    tabnotes[annotations[i].position].note.addModifier(
+        annotation);
   }
 
   // Add ties
