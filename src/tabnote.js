@@ -26,7 +26,15 @@ Vex.Flow.TabNote.prototype.init = function(tab_struct) {
   this.glyphs = [];
   this.width = 0;
   for (var i = 0; i < this.positions.length; ++i) {
-    var fret = this.positions[i].fret;
+    var fret = null;
+    // if duration is a rest, replace fret specification with duration
+    if(tab_struct.duration.indexOf('r') != -1) {
+      fret = tab_struct.duration;
+      // place in the middle
+      this.positions[i].str = 3;
+    } else {
+      fret = this.positions[i].fret;
+    }
     var glyph = Vex.Flow.tabToGlyph(fret);
     this.glyphs.push(glyph);
     this.width = (glyph.width > this.width) ? glyph.width : this.width;

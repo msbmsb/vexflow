@@ -139,6 +139,13 @@ Vex.Flow.tabToGlyph = function(fret) {
     glyph = "v7f";
     width = 7;
     shift_y = -4.5;
+  } else if(fret.toString().indexOf("r") != -1) {
+    // if fret is a string ending in 'r', i.e. a rest
+    // get the duration glyph and set to match tab glyph output
+    durationGlyph = Vex.Flow.durationToGlyph(fret);
+    glyph = durationGlyph.code_head;
+    width = durationGlyph.head_width;
+    shift_y = -4.0;
   } else {
     width = 5 * fret.toString().length;
   }
