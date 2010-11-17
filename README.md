@@ -1,10 +1,11 @@
 VexFlow fork:msbmsb
 ===================
 
-This fork is intended to introduce:
+This fork introduces:
 
 * Rests displayed in tablature stave
-* Text displayed at bottom of stave below associated note 
+* Text displayed at bottom of stave below associated note
+  e.g. notes "sample :8 1/2 "text :q (1/2.2/2)
 
 ----
 
