@@ -360,7 +360,9 @@ Vex.Flow.VexTab.prototype.parseToken = function(str) {
 
 Vex.Flow.VexTab.validDurations = {
   "w": "w",
+  "hd": "hd",
   "h": "h",
+  "qd": "qd",
   "q": "q",
   "8": "8",
   "8d": "8d",
